@@ -1,10 +1,10 @@
 {
   "name": "goose",
-  "version": "0.0.1",
-  "description": "Database-model API.",
+  "version": "0.1.0",
+  "description": "Model API.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "repository": {
     "type": "git",
@@ -13,9 +13,8 @@
   "keywords": [
     "api",
     "goose",
-    "database",
-    "sqlite3",
-    "sqlite"
+    "model",
+    "schema"
   ],
   "author": "Silent Kat",
   "license": "ISC",
