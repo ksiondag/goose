@@ -99,9 +99,11 @@ exports.model = function (name, props) {
     };
 
     models[name] = Model;
+    Model.serializeKeys = [];
     Object.keys(props).forEach((key) => {
         if (!props.hasOwnProperty(key)) { return; }
         Model.addProp(key, props[key]);
+        Model.serializeKeys.push(key);
     });
 
     Model.sameDefinition = function (definition) {
@@ -130,12 +132,15 @@ exports.model = function (name, props) {
 
     var id = 0;
     Model.prototype.save = function () {
-        if (this._id !== null) {
-            return this;
+        if (!this._id) {
+            this._id = id;
+            id += 1;
+        } else {
+            id = Math.max(id, this._id + 1);
         }
-        this._id = id;
-        id += 1;
-        instances.push(this);
+        if (instances.indexOf(this) === -1) {
+            instances.push(this);
+        }
         return this;
     };
 
@@ -148,6 +153,15 @@ var relationship = function (func) {
         ret = func.apply(this, arguments);
         ret.relationship = true;
         return ret;
+    };
+};
+
+var forceInstance = function (Model, callback) {
+    return function (obj) {
+        if (typeof(obj) === 'number') {
+            obj = Model.instances.get({_id: obj});
+        }
+        return callback.call(this, obj);
     };
 };
 
@@ -169,7 +183,7 @@ exports.oneToOne = relationship(function (otherName) {
                         search[key] = this;
                         return Model.instances.get(search);
                     },
-                    set: function (obj) {
+                    set: forceInstance(Model, function (obj) {
                         var search;
                         var originalObj;
 
@@ -192,7 +206,7 @@ exports.oneToOne = relationship(function (otherName) {
                         );
 
                         obj[key] = this;
-                    },
+                    }),
                     enumerable: true
                 };
             };
@@ -209,15 +223,16 @@ exports.oneToOne = relationship(function (otherName) {
                     }
                     return OtherModel.instances.get({_id: otherId});
                 },
-                set: function (otherObj) {
+                set: forceInstance(OtherModel, function (otherObj) {
                     if (!otherObj) {
                         otherId = null;
+                        return;
                     }
                     assert(otherObj instanceof OtherModel,
                         `Assigning non-${otherName} instance to ${name}.${key}`
                     );
                     otherId = otherObj._id;
-                },
+                }),
                 enumerable: true
             };
         };
@@ -244,6 +259,8 @@ exports.manyToOne = relationship(function (otherName) {
                         search[key] = this;
                         return Model.instances.filter(search);
                     },
+                    // TODO silent kat 2016/06/01
+                    // Setter
                     enumerable: true
                 };
             };
@@ -270,7 +287,7 @@ exports.manyToOne = relationship(function (otherName) {
                     }
                     return OtherModel.instances.get({_id: otherId});
                 },
-                set: function (otherObj) {
+                set: forceInstance(OtherModel, function (otherObj) {
                     if (!otherObj) {
                         otherId = null;
                     }
@@ -278,7 +295,7 @@ exports.manyToOne = relationship(function (otherName) {
                         `Assigning non-${otherName} instance to ${name}.${key}`
                     );
                     otherId = otherObj._id;
-                },
+                }),
                 enumerable: true
             };
         };
@@ -314,9 +331,9 @@ exports.manyToMany = relationship(function (otherName) {
                         oldObjs.forEach((obj) => {
                             obj['remove' + otherName](this);
                         });
-                        objs.forEach((obj) => {
+                        objs.forEach(forceInstance(Model, (obj) => {
                             obj['add' + otherName](this);
-                        });
+                        }));
                     },
                     enumerable: true
                 };
@@ -371,7 +388,12 @@ exports.manyToMany = relationship(function (otherName) {
                     });
                 },
                 set: function (otherObjs) {
-                    otherIds = otherObjs.map((otherObj) => otherObj._id);
+                    otherIds = otherObjs.map(
+                        forceInstance(
+                            OtherModel,
+                            (otherObj) => otherObj._id
+                        )
+                    );
                 },
                 enumerable: true
             };
@@ -385,35 +407,43 @@ exports.purge = function () {
     models = {};
 };
 
-exports.dump = function (filename) {
-    var name, Model, instances, dumpJSON = [];
-    for (name in models) {
-        if (!models.hasOwnProperty(name)) { continue; }
+exports.dump = function () {
+    var jsonDump = [];
+    Object.keys(models).forEach((name) => {
+        var Model;
+
+        if (!models.hasOwnProperty(name)) { return; }
         Model = models[name];
-        instances = Model.instances.all();
-        instances.forEach((instance) => {
-            var key, val, dumpRow;
-            dumpRow = {
-                name: name,
+
+        Model.instances.all().forEach((instance) => {
+            var instanceDump = {
                 id: instance._id,
+                name: name,
                 properties: {}
             };
-            for (key in instance) {
-                if (key === '_id' || !instance.hasOwnProperty(key)) {
-                    continue;
+            Model.serializeKeys.forEach((key) => {
+                var val = instance[key];
+                if (val instanceof Array) {
+                    val = val.map((obj) => obj._id);
+                } else if (val instanceof Object) {
+                    val = val._id;
                 }
-                val = instance[key];
-                if (val._id) {
-                    dumpRow.properties[key] = val._id;
-                    continue;
-                }
-                dumpRow.properties[key] = val;
-            }
-            dumpJSON.push(dumpJSON);
+                instanceDump.properties[key] = val;
+            });
+            jsonDump.push(instanceDump);
         });
-    }
+    });
+    return JSON.stringify(jsonDump, null, 2);
 };
 
-exports.load = function (filename) {
+exports.load = function (jsonString) {
+    var json = JSON.parse(jsonString);
+
+    json.forEach((definition) => {
+        var Model = models[definition.name];
+        var model = new Model(definition.properties);
+        model._id = definition.id;
+        model.save();
+    });
 };
 

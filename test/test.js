@@ -13,6 +13,10 @@ describe('goose', function () {
         goose.purge();
     });
 
+    afterEach(function () {
+        goose.purge();
+    });
+
     describe('#models', function () {
         it('should handle simple, non-relational models', function () {
             var User = goose.model('User', {
@@ -147,10 +151,88 @@ describe('goose', function () {
                 'User2 does not have anticipated number of emails'
             );
         });
-    });
 
-    afterEach(function () {
-        goose.purge();
+        it('should dump and load properly', function () {
+            var User = goose.model('User', {
+                username: String
+            });
+
+            var Email = goose.model('Email', {
+                address: String,
+                user: goose.oneToOne('User')
+            });
+
+            var Character = goose.model('Character', {
+                name: String,
+                user: goose.manyToOne('User')
+            });
+
+            var Group = goose.model('Group', {
+                name: String,
+                users: goose.manyToMany('User')
+            });
+
+            var user = new User({
+                username: 'Foo'
+            }).save();
+            var user2 = new User({
+                username: 'Bar'
+            }).save();
+
+            var email = new Email({
+                address: 'foo@example.com'
+            }).save();
+            var email2 = new Email({
+                address: 'bar@example.com'
+            }).save();
+
+            var character = new Character({
+                name: 'Jace the Mind Sculpter'
+            });
+            var character2 = new Character({
+                name: 'Elflord'
+            });
+
+            var group = new Group({
+                name: 'Elves'
+            }).save();
+            var group2 = new Group({
+                name: 'Wizards'
+            }).save();
+
+            user.addGroup(group);
+            user.addGroup(group2);
+
+            user2.addGroup(group);
+
+            var dump = goose.dump();
+
+            goose.purge()
+
+            User = goose.model('User', {
+                username: String
+            });
+
+            Email = goose.model('Email', {
+                address: String,
+                user: goose.oneToOne('User')
+            });
+
+            Character = goose.model('Character', {
+                name: String,
+                user: goose.manyToOne('User')
+            });
+
+            Group = goose.model('Group', {
+                name: String,
+                users: goose.manyToMany('User')
+            });
+
+            goose.load(dump);
+
+            var assert = require('assert');
+            assert.equal(dump, goose.dump(), 'WTF?!?');
+        });
     });
 });
 
