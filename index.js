@@ -11,10 +11,15 @@ var models = {};
 exports.model = function (name, props) {
     var Model = models[name];
 
+    if (!props) {
+        return Model;
+    }
+
     if (Model) {
         assert(Model.sameDefinition(props), 
             `ModelError: Multiple different definitions of ${name}`
         );
+        console.log(`Warning: model ${name} defined multiple times`);
         return Model;
     }
 
