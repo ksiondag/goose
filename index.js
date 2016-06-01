@@ -4,12 +4,12 @@
 // Might be better to be capable of creating multiple seperate instances of
 // goose, as multiple different setups could be of use in a single app
 
-var assert = require('assert');
+const assert = require('assert');
 
-var models = {};
+let models = {};
 
 exports.model = function (name, props) {
-    var Model = models[name];
+    let Model = models[name];
 
     if (!props) {
         return Model;
@@ -23,7 +23,7 @@ exports.model = function (name, props) {
         return Model;
     }
 
-    var propSet = {};
+    let propSet = {};
     Model = function (obj) {
         // TODO: 2016/05/29
         // Imperfect object checking
@@ -44,13 +44,13 @@ exports.model = function (name, props) {
         });
     };
 
-    var instances = [];
+    let instances = [];
     Model.instances = {
         all: function () {
             return instances;
         },
         filter: function (params) {
-            var results;
+            let results;
 
             if (!params) {
                 params = {};
@@ -64,7 +64,7 @@ exports.model = function (name, props) {
             return results;
         },
         get: function (params) {
-            var results = this.filter(params);
+            let results = this.filter(params);
             assert(results.length <= 1, 'More than one value meets criteria');
             return results[0] || null;
         }
@@ -77,7 +77,7 @@ exports.model = function (name, props) {
         }
 
         propSet[key] = function () {
-            var val = null;
+            let val = null;
             return {
                 get: function () {
                     return val;
@@ -130,7 +130,7 @@ exports.model = function (name, props) {
         });
     };
 
-    var id = 0;
+    let id = 0;
     Model.prototype.save = function () {
         if (!this._id) {
             this._id = id;
@@ -147,9 +147,9 @@ exports.model = function (name, props) {
     return Model;
 };
 
-var relationship = function (func) {
+let relationship = function (func) {
     return function () {
-        var ret;
+        let ret;
         ret = func.apply(this, arguments);
         ret.relationship = true;
         return ret;
@@ -166,26 +166,26 @@ var forceInstance = function (Model, callback) {
 };
 
 exports.oneToOne = relationship(function (otherName) {
-    var oneToOneAPI;
+    let oneToOneAPI;
 
     oneToOneAPI = function (name, key) {
-        var Model = models[name];
-        var OtherModel = models[otherName];
+        let Model = models[name];
+        let OtherModel = models[otherName];
 
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        var otherType = function () {
+        let otherType = function () {
             return function () {
                 return {
                     get: function () {
-                        var search = {};
+                        let search = {};
                         search[key] = this;
                         return Model.instances.get(search);
                     },
                     set: forceInstance(Model, function (obj) {
-                        var search;
-                        var originalObj;
+                        let search;
+                        let originalObj;
 
                         search = {
                             [key]: this._id
@@ -215,7 +215,7 @@ exports.oneToOne = relationship(function (otherName) {
         OtherModel.addProp(name.toLowerCase(), otherType);
 
         return function () {
-            var otherId = null;
+            let otherId = null;
             return {
                 get: function () {
                     if (otherId === null) {
@@ -242,20 +242,20 @@ exports.oneToOne = relationship(function (otherName) {
 });
 
 exports.manyToOne = relationship(function (otherName) {
-    var manyToOneAPI;
+    let manyToOneAPI;
 
     manyToOneAPI = function (name, key) {
-        var Model = models[name];
-        var OtherModel = models[otherName];
+        let Model = models[name];
+        let OtherModel = models[otherName];
 
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        var otherType = function () {
+        let otherType = function () {
             return function () {
                 return {
                     get: function () {
-                        var search = {};
+                        let search = {};
                         search[key] = this;
                         return Model.instances.filter(search);
                     },
@@ -279,7 +279,7 @@ exports.manyToOne = relationship(function (otherName) {
         };
 
         return function () {
-            var otherId = null;
+            let otherId = null;
             return {
                 get: function () {
                     if (otherId === null) {
@@ -304,19 +304,19 @@ exports.manyToOne = relationship(function (otherName) {
     return manyToOneAPI;
 });
 
-var manyMaps = {};
+let manyMaps = {};
 exports.manyToMany = relationship(function (otherName) {
     // TODO 2016/05/30
-    var manyToManyAPI;
+    let manyToManyAPI;
 
-    manyToManyAPI = function (name, key) {
-        var Model = models[name];
-        var OtherModel = models[otherName];
+    return function (name, key) {
+        let Model = models[name];
+        let OtherModel = models[otherName];
 
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        var otherType = function () {
+        let otherType = function () {
             return function () {
                 return {
                     get: function () {
@@ -327,7 +327,7 @@ exports.manyToMany = relationship(function (otherName) {
                         });
                     },
                     set: function (objs) {
-                        var oldObjs = this[name.toLowerCase() + 's'];
+                        let oldObjs = this[name.toLowerCase() + 's'];
                         oldObjs.forEach((obj) => {
                             obj['remove' + otherName](this);
                         });
@@ -354,7 +354,7 @@ exports.manyToMany = relationship(function (otherName) {
         };
 
         Model.prototype['add' + otherName] = function (otherObj) {
-            var otherObjs;
+            let otherObjs;
             assert(otherObj instanceof OtherModel,
                 `Assigning non-${otherName} instance to ${name}.${key}`
             );
@@ -369,7 +369,7 @@ exports.manyToMany = relationship(function (otherName) {
         };
 
         Model.prototype['remove' + otherName] = function (otherObj) {
-            var index, otherObjs;
+            let index, otherObjs;
             otherObjs = this[key];
             index = otherObjs.indexOf(otherObj);
             if (index === -1) {
@@ -380,7 +380,7 @@ exports.manyToMany = relationship(function (otherName) {
         };
 
         return function () {
-            var otherIds = [];
+            let otherIds = [];
             return {
                 get: function () {
                     return otherIds.map((id) => {
@@ -399,8 +399,6 @@ exports.manyToMany = relationship(function (otherName) {
             };
         };
     };
-
-    return manyToManyAPI;
 });
 
 exports.purge = function () {
@@ -408,21 +406,21 @@ exports.purge = function () {
 };
 
 exports.dump = function () {
-    var jsonDump = [];
+    let jsonDump = [];
     Object.keys(models).forEach((name) => {
-        var Model;
+        let Model;
 
         if (!models.hasOwnProperty(name)) { return; }
         Model = models[name];
 
         Model.instances.all().forEach((instance) => {
-            var instanceDump = {
+            let instanceDump = {
                 id: instance._id,
                 name: name,
                 properties: {}
             };
             Model.serializeKeys.forEach((key) => {
-                var val = instance[key];
+                let val = instance[key];
                 if (val instanceof Array) {
                     val = val.map((obj) => obj._id);
                 } else if (val instanceof Object) {
@@ -437,11 +435,11 @@ exports.dump = function () {
 };
 
 exports.load = function (jsonString) {
-    var json = JSON.parse(jsonString);
+    let json = JSON.parse(jsonString);
 
     json.forEach((definition) => {
-        var Model = models[definition.name];
-        var model = new Model(definition.properties);
+        let Model = models[definition.name];
+        let model = new Model(definition.properties);
         model._id = definition.id;
         model.save();
     });
