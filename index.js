@@ -4,15 +4,17 @@
 // Might be better to be capable of creating multiple seperate instances of
 // goose, as multiple different setups could be of use in a single app
 
+var assert = require('assert');
+
 var models = {};
 
 exports.model = function (name, props) {
     var Model = models[name];
 
     if (Model) {
-        if (!Model.sameDefinition(props)) {
-            throw 'ModelError: Multiple different definitions of' + name;
-        }
+        assert(Model.sameDefinition(props), 
+            `ModelError: Multiple different definitions of ${name}`
+        );
         return Model;
     }
 
@@ -30,9 +32,9 @@ exports.model = function (name, props) {
 
         Object.keys(obj).forEach((key) => {
             if (!obj.hasOwnProperty(key)) { return; }
-            if (!propSet.hasOwnProperty(key)) {
-                throw 'Model has no property "' + key + '"';
-            }
+            assert(propSet.hasOwnProperty(key),
+                `Model has no property "${key}"`
+            );
             this[key] = obj[key];
         });
     };
@@ -58,12 +60,8 @@ exports.model = function (name, props) {
         },
         get: function (params) {
             var results = this.filter(params);
-            if (results.length > 1) {
-                throw 'More than one value meets criteria';
-            } else if (results.length < 1) {
-                return null;
-            }
-            return results[0];
+            assert(results.length <= 1, 'More than one value meets criteria');
+            return results[0] || null;
         }
     };
 
@@ -150,14 +148,14 @@ var relationship = function (func) {
 
 exports.oneToOne = relationship(function (otherName) {
     var oneToOneAPI;
-    var OtherModel = models[otherName];
-
-    if (!OtherModel) {
-        throw 'No model with name ' + otherName;
-    }
 
     oneToOneAPI = function (name, key) {
         var Model = models[name];
+        var OtherModel = models[otherName];
+
+        assert(Model, `No model with name ${name}`);
+        assert(OtherModel, `No model with name ${otherName}`);
+
         var otherType = function () {
             return function () {
                 return {
@@ -184,9 +182,10 @@ exports.oneToOne = relationship(function (otherName) {
                             return;
                         }
 
-                        if (!(obj instanceof Model)) {
-                            throw `Assigning non-${name} instance to ${otherName}.${key}`;
-                        }
+                        assert(obj instanceof Model,
+                            `Assigning non-${name} instance to ${otherName}.${key}`
+                        );
+
                         obj[key] = this;
                     },
                     enumerable: true
@@ -209,9 +208,9 @@ exports.oneToOne = relationship(function (otherName) {
                     if (!otherObj) {
                         otherId = null;
                     }
-                    if (!(otherObj instanceof OtherModel)) {
-                        throw `Assigning non-${otherName} instance to ${name}.${key}`;
-                    }
+                    assert(otherObj instanceof OtherModel,
+                        `Assigning non-${otherName} instance to ${name}.${key}`
+                    );
                     otherId = otherObj._id;
                 },
                 enumerable: true
@@ -224,14 +223,14 @@ exports.oneToOne = relationship(function (otherName) {
 
 exports.manyToOne = relationship(function (otherName) {
     var manyToOneAPI;
-    var OtherModel = models[otherName];
-
-    if (!OtherModel) {
-        throw 'No model with name ' + otherName;
-    }
 
     manyToOneAPI = function (name, key) {
         var Model = models[name];
+        var OtherModel = models[otherName];
+
+        assert(Model, `No model with name ${name}`);
+        assert(OtherModel, `No model with name ${otherName}`);
+
         var otherType = function () {
             return function () {
                 return {
@@ -270,9 +269,9 @@ exports.manyToOne = relationship(function (otherName) {
                     if (!otherObj) {
                         otherId = null;
                     }
-                    if (!(otherObj instanceof OtherModel)) {
-                        throw `Assigning non-${otherName} instance to ${name}.${key}`;
-                    }
+                    assert(otherObj instanceof OtherModel,
+                        `Assigning non-${otherName} instance to ${name}.${key}`
+                    );
                     otherId = otherObj._id;
                 },
                 enumerable: true
@@ -287,14 +286,14 @@ var manyMaps = {};
 exports.manyToMany = relationship(function (otherName) {
     // TODO 2016/05/30
     var manyToManyAPI;
-    var OtherModel = models[otherName];
-
-    if (!OtherModel) {
-        throw 'No model with name ' + otherName;
-    }
 
     manyToManyAPI = function (name, key) {
         var Model = models[name];
+        var OtherModel = models[otherName];
+
+        assert(Model, `No model with name ${name}`);
+        assert(OtherModel, `No model with name ${otherName}`);
+
         var otherType = function () {
             return function () {
                 return {
@@ -322,9 +321,9 @@ exports.manyToMany = relationship(function (otherName) {
         OtherModel.addProp(name.toLowerCase() + 's', otherType);
 
         OtherModel.prototype['add' + name] = function (obj) {
-            if(!(obj instanceof Model)) {
-                throw `Assigning non-${name} instance to ${otherName}.${key}`;
-            }
+            assert(obj instanceof Model,
+                `Assigning non-${name} instance to ${otherName}.${key}`
+            );
             obj['add' + otherName](this);
         };
 
@@ -334,9 +333,9 @@ exports.manyToMany = relationship(function (otherName) {
 
         Model.prototype['add' + otherName] = function (otherObj) {
             var otherObjs;
-            if(!(otherObj instanceof OtherModel)) {
-                throw `Assigning non-${otherName} instance to ${name}.${key}`;
-            }
+            assert(otherObj instanceof OtherModel,
+                `Assigning non-${otherName} instance to ${name}.${key}`
+            );
 
             otherObjs = this[key];
             // Other object already present in list, do nothing
