@@ -71,7 +71,7 @@ exports.model = function (name, props) {
     };
 
     Model.addProp = function (key, type) {
-        if (type.relationship) {
+        if ([String, Number].every((check) => check !== type)) {
             propSet[key] = type(name, key);
             return;
         }
@@ -147,15 +147,6 @@ exports.model = function (name, props) {
     return Model;
 };
 
-let relationship = function (func) {
-    return function () {
-        let ret;
-        ret = func.apply(this, arguments);
-        ret.relationship = true;
-        return ret;
-    };
-};
-
 var forceInstance = function (Model, callback) {
     return function (obj) {
         if (typeof(obj) === 'number') {
@@ -165,17 +156,15 @@ var forceInstance = function (Model, callback) {
     };
 };
 
-exports.oneToOne = relationship(function (otherName) {
-    let oneToOneAPI;
-
-    oneToOneAPI = function (name, key) {
+exports.oneToOne = function (otherName) {
+    return function (name, key) {
         let Model = models[name];
         let OtherModel = models[otherName];
 
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        let otherType = function () {
+        OtherModel.addProp(name.toLowerCase(), function () {
             return function () {
                 return {
                     get: function () {
@@ -210,9 +199,7 @@ exports.oneToOne = relationship(function (otherName) {
                     enumerable: true
                 };
             };
-        };
-        otherType.relationship = true;
-        OtherModel.addProp(name.toLowerCase(), otherType);
+        });
 
         return function () {
             let otherId = null;
@@ -237,21 +224,17 @@ exports.oneToOne = relationship(function (otherName) {
             };
         };
     };
+};
 
-    return oneToOneAPI;
-});
-
-exports.manyToOne = relationship(function (otherName) {
-    let manyToOneAPI;
-
-    manyToOneAPI = function (name, key) {
+exports.manyToOne = function (otherName) {
+    return function (name, key) {
         let Model = models[name];
         let OtherModel = models[otherName];
 
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        let otherType = function () {
+        OtherModel.addProp(name.toLowerCase() + 's', function () {
             return function () {
                 return {
                     get: function () {
@@ -264,9 +247,7 @@ exports.manyToOne = relationship(function (otherName) {
                     enumerable: true
                 };
             };
-        };
-        otherType.relationship = true;
-        OtherModel.addProp(name.toLowerCase() + 's', otherType);
+        });
 
         OtherModel.prototype['add' + name] = function (obj) {
             obj[key] = this;
@@ -290,6 +271,7 @@ exports.manyToOne = relationship(function (otherName) {
                 set: forceInstance(OtherModel, function (otherObj) {
                     if (!otherObj) {
                         otherId = null;
+                        return;
                     }
                     assert(otherObj instanceof OtherModel,
                         `Assigning non-${otherName} instance to ${name}.${key}`
@@ -300,15 +282,10 @@ exports.manyToOne = relationship(function (otherName) {
             };
         };
     };
-
-    return manyToOneAPI;
-});
+};
 
 let manyMaps = {};
-exports.manyToMany = relationship(function (otherName) {
-    // TODO 2016/05/30
-    let manyToManyAPI;
-
+exports.manyToMany = function (otherName) {
     return function (name, key) {
         let Model = models[name];
         let OtherModel = models[otherName];
@@ -316,7 +293,7 @@ exports.manyToMany = relationship(function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        let otherType = function () {
+        OtherModel.addProp(name.toLowerCase() + 's', function () {
             return function () {
                 return {
                     get: function () {
@@ -338,9 +315,7 @@ exports.manyToMany = relationship(function (otherName) {
                     enumerable: true
                 };
             };
-        };
-        otherType.relationship = true;
-        OtherModel.addProp(name.toLowerCase() + 's', otherType);
+        });
 
         OtherModel.prototype['add' + name] = function (obj) {
             assert(obj instanceof Model,
@@ -399,7 +374,7 @@ exports.manyToMany = relationship(function (otherName) {
             };
         };
     };
-});
+};
 
 exports.purge = function () {
     models = {};

@@ -118,11 +118,18 @@ describe('goose', function () {
             );
 
             user2.addCharacter(character2);
-
             assert.equal(user.characters.length, 1,
                 'User does not have anticipated number of characters'
             );
             assert.equal(user2.characters.length, 1,
+                'User2 does not have anticipated number of characters'
+            );
+
+            user2.removeCharacter(character2);
+            assert.equal(user.characters.length, 1,
+                'User does not have anticipated number of characters'
+            );
+            assert.equal(user2.characters.length, 0,
                 'User2 does not have anticipated number of characters'
             );
         });
