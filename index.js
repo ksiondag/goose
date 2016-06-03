@@ -73,25 +73,24 @@ exports.model = function (name, props) {
     Model.addProp = function (key, type) {
         if ([String, Number].every((check) => check !== type)) {
             propSet[key] = type(name, key);
-            return;
-        }
-
-        propSet[key] = function () {
-            let val = null;
-            return {
-                get: function () {
-                    return val;
-                },
-                set: function (newVal) {
-                    if (newVal === null) {
-                        val = newVal;
-                        return;
-                    }
-                    val = type(newVal);
-                },
-                enumerable: true
+        } else {
+            propSet[key] = function () {
+                let val = null;
+                return {
+                    get: function () {
+                        return val;
+                    },
+                    set: function (newVal) {
+                        if (newVal === null) {
+                            val = newVal;
+                            return;
+                        }
+                        val = type(newVal);
+                    },
+                    enumerable: true
+                };
             };
-        };
+        }
 
         Model.instances.all().forEach((instance) => {
             Object.defineProperty(this, key, propSet[key]());
