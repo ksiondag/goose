@@ -93,7 +93,7 @@ exports.model = function (name, props) {
         }
 
         Model.instances.all().forEach((instance) => {
-            Object.defineProperty(this, key, propSet[key]());
+            Object.defineProperty(instance, key, propSet[key](instance));
         });
     };
 
