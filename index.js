@@ -27,6 +27,7 @@ exports.model = function (name, props) {
     }
 
     let propSet = {};
+    let bind = [];
     Model = function (obj) {
         // TODO: 2016/05/29
         // Imperfect object checking
@@ -45,6 +46,8 @@ exports.model = function (name, props) {
             );
             this[key] = obj[key];
         });
+
+        bind.forEach((func) => func(this));
     };
 
     let instances = [];
@@ -101,8 +104,13 @@ exports.model = function (name, props) {
         }
 
         Model.instances.all().forEach((instance) => {
-            Object.defineProperty(instance, key, propSet[key](instance));
+            Object.defineProperty(instance, key, propSet[key]());
         });
+    };
+
+    Model.bind = function (func) {
+        bind.push(func);
+        Model.instances.all().forEach((instance) => func(instance));
     };
 
     models[name] = Model;
