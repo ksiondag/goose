@@ -163,41 +163,37 @@ exports.oneToOne = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        OtherModel.addProp(name.toLowerCase(), function () {
-            return function () {
-                return {
-                    get: function () {
-                        let search = {};
-                        search[key] = this;
-                        return Model.instances.get(search);
-                    },
-                    set: forceInstance(Model, function (obj) {
-                        let search;
-                        let originalObj;
+        Object.defineProperty(OtherModel.prototype, name.toLowerCase(), {
+            get: function () {
+                let search = {};
+                search[key] = this;
+                return Model.instances.get(search);
+            },
+            set: forceInstance(Model, function (obj) {
+                let search;
+                let originalObj;
 
-                        search = {
-                            [key]: this._id
-                        };
-
-                        originalObj = Model.instances.get(search);
-
-                        if (originalObj) {
-                            originalObj[key] = null;
-                        }
-
-                        if (obj === null) {
-                            return;
-                        }
-
-                        assert(obj instanceof Model,
-                            `Assigning non-${name} instance to ${otherName}.${key}`
-                        );
-
-                        obj[key] = this;
-                    }),
-                    enumerable: true
+                search = {
+                    [key]: this._id
                 };
-            };
+
+                originalObj = Model.instances.get(search);
+
+                if (originalObj) {
+                    originalObj[key] = null;
+                }
+
+                if (obj === null) {
+                    return;
+                }
+
+                assert(obj instanceof Model,
+                    `Assigning non-${name} instance to ${otherName}.${key}`
+                );
+
+                obj[key] = this;
+            }),
+            enumerable: true
         });
 
         return function () {
@@ -233,19 +229,15 @@ exports.manyToOne = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        OtherModel.addProp(name.toLowerCase() + 's', function () {
-            return function () {
-                return {
-                    get: function () {
-                        let search = {};
-                        search[key] = this;
-                        return Model.instances.filter(search);
-                    },
-                    // TODO silent kat 2016/06/01
-                    // Setter
-                    enumerable: true
-                };
-            };
+        Object.defineProperty(OtherModel.prototype, name.toLowerCase() + 's', {
+            get: function () {
+                let search = {};
+                search[key] = this;
+                return Model.instances.filter(search);
+            },
+            // TODO silent kat 2016/06/01
+            // Setter
+            enumerable: true
         });
 
         OtherModel.prototype['add' + name] = function (obj) {
@@ -292,28 +284,24 @@ exports.manyToMany = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        OtherModel.addProp(name.toLowerCase() + 's', function () {
-            return function () {
-                return {
-                    get: function () {
-                        return Model.instances.all().filter((instance) => {
-                            return instance[key].some((otherInstance) => {
-                                return otherInstance === this;
-                            });
-                        });
-                    },
-                    set: function (objs) {
-                        let oldObjs = this[name.toLowerCase() + 's'];
-                        oldObjs.forEach((obj) => {
-                            obj['remove' + otherName](this);
-                        });
-                        objs.forEach(forceInstance(Model, (obj) => {
-                            obj['add' + otherName](this);
-                        }));
-                    },
-                    enumerable: true
-                };
-            };
+        Object.defineProperty(OtherModel.prototype, name.toLowerCase() + 's', {
+            get: function () {
+                return Model.instances.all().filter((instance) => {
+                    return instance[key].some((otherInstance) => {
+                        return otherInstance === this;
+                    });
+                });
+            },
+            set: function (objs) {
+                let oldObjs = this[name.toLowerCase() + 's'];
+                oldObjs.forEach((obj) => {
+                    obj['remove' + otherName](this);
+                });
+                objs.forEach(forceInstance(Model, (obj) => {
+                    obj['add' + otherName](this);
+                }));
+            },
+            enumerable: true
         });
 
         OtherModel.prototype['add' + name] = function (obj) {
