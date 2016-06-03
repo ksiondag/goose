@@ -238,7 +238,32 @@ describe('goose', function () {
             goose.load(dump);
 
             var assert = require('assert');
-            assert.equal(dump, goose.dump(), 'WTF?!?');
+            assert.equal(dump, goose.dump(),
+                'Loaded JSON contents did not recreate database perfectly'
+            );
+        });
+
+        it('binds new properties to already existing instances', function () {
+            var User = goose.model('User', {
+                username: String
+            });
+
+            var user = new User({
+                username: 'Foo'
+            }).save();
+
+            var Email = goose.model('Email', {
+                address: String,
+                user: goose.oneToOne('User')
+            });
+
+            var email = new Email({
+                address: 'foo@example.com',
+                user: user
+            }).save();
+
+            assert.ok(user.email, 'user does not have an email property');
+            assert.equal(user.email,  email, 'user.email is incorrect');
         });
     });
 });
