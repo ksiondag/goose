@@ -11,6 +11,9 @@ let models = {};
 exports.model = function (name, props) {
     let Model = models[name];
 
+    // TODO 2016/06/03
+    // Not sure how I feel about being able to fetch an already-created Model
+    // by its name
     if (!props) {
         return Model;
     }
@@ -72,7 +75,12 @@ exports.model = function (name, props) {
 
     Model.addProp = function (key, type) {
         if ([String, Number].every((check) => check !== type)) {
-            propSet[key] = type(name, key);
+            if (type.get) {
+                Object.defineProperty(Model.prototype, key, type);
+                return;
+            } else {
+                propSet[key] = type(name, key);
+            }
         } else {
             propSet[key] = function () {
                 let val = null;
@@ -155,6 +163,12 @@ var forceInstance = function (Model, callback) {
     };
 };
 
+exports.propClosure = function (func) {
+    return function () {
+        return func;
+    };
+};
+
 exports.oneToOne = function (otherName) {
     return function (name, key) {
         let Model = models[name];
@@ -163,7 +177,7 @@ exports.oneToOne = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        Object.defineProperty(OtherModel.prototype, name.toLowerCase(), {
+        OtherModel.addProp(name.toLowerCase(), {
             get: function () {
                 let search = {};
                 search[key] = this;
@@ -229,7 +243,7 @@ exports.manyToOne = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        Object.defineProperty(OtherModel.prototype, name.toLowerCase() + 's', {
+        OtherModel.addProp(name.toLowerCase() + 's', {
             get: function () {
                 let search = {};
                 search[key] = this;
@@ -284,7 +298,7 @@ exports.manyToMany = function (otherName) {
         assert(Model, `No model with name ${name}`);
         assert(OtherModel, `No model with name ${otherName}`);
 
-        Object.defineProperty(OtherModel.prototype, name.toLowerCase() + 's', {
+        OtherModel.addProp(name.toLowerCase() + 's', {
             get: function () {
                 return Model.instances.all().filter((instance) => {
                     return instance[key].some((otherInstance) => {

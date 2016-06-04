@@ -5,8 +5,8 @@
 
 // TODO: 2016/05/29
 // Think about which test library to use
-var goose = require('../index.js');
-var assert = require('assert');
+const goose = require('../index.js');
+const assert = require('assert');
 
 describe('goose', function () {
     beforeEach(function () {
@@ -19,45 +19,45 @@ describe('goose', function () {
 
     describe('#models', function () {
         it('should handle simple, non-relational models', function () {
-            var User = goose.model('User', {
+            const User = goose.model('User', {
                 email: String,
                 password: String
             });
 
-            var user = new User({
+            const user = new User({
                 email: 'testuser@example.com',
                 password: 'testpassword'
             }).save();
 
-            var user2 = new User({
+            const user2 = new User({
                 email: 'otheruser@example.com',
                 password: 'otherpassword'
             }).save();
 
-            var users = User.instances.all();
+            const users = User.instances.all();
 
             assert.equal(user, users[0], 'Unexpected first user');
             assert.equal(user2, users[1], 'Unexpected second user');
         });
 
         it('should handle one-to-one relationships', function () {
-            var User = goose.model('User', {
+            const User = goose.model('User', {
                 email: String
             });
 
-            var Character = goose.model('Character', {
+            const Character = goose.model('Character', {
                 user: goose.oneToOne('User')
             });
 
-            var user = new User({
+            const user = new User({
                 email: 'testuser@example.com'
             }).save();
 
-            var user2 = new User({
+            const user2 = new User({
                 email: 'otheruser@example.com'
             }).save();
 
-            var character = new Character({
+            const character = new Character({
                 user: user
             }).save();
 
@@ -86,27 +86,27 @@ describe('goose', function () {
         });
 
         it('should handle many-to-one relationships', function () {
-            var User = goose.model('User', {
+            const User = goose.model('User', {
                 email: String
             });
 
-            var Character = goose.model('Character', {
+            const Character = goose.model('Character', {
                 user: goose.manyToOne('User')
             });
 
-            var user = new User({
+            const user = new User({
                 email: 'testuser@example.com'
             }).save();
 
-            var user2 = new User({
+            const user2 = new User({
                 email: 'otheruser@example.com'
             }).save();
 
-            var character = new Character({
+            const character = new Character({
                 user: user
             }).save();
 
-            var character2 = new Character({
+            const character2 = new Character({
                 user: user
             }).save();
 
@@ -135,16 +135,16 @@ describe('goose', function () {
         });
 
         it('should handdle many-to-many relationships', function () {
-            var User = goose.model('User', {});
-            var Email = goose.model('Email', {
+            const User = goose.model('User', {});
+            const Email = goose.model('Email', {
                 users: goose.manyToMany('User')
             });
 
-            var user = new User({}).save();
-            var user2 = new User({}).save();
+            const user = new User({}).save();
+            const user2 = new User({}).save();
 
-            var email = new Email({}).save();
-            var email2 = new Email({}).save();
+            const email = new Email({}).save();
+            const email2 = new Email({}).save();
 
             user.addEmail(email);
             user.addEmail(email2);
@@ -160,50 +160,50 @@ describe('goose', function () {
         });
 
         it('should dump and load properly', function () {
-            var User = goose.model('User', {
+            let User = goose.model('User', {
                 username: String
             });
 
-            var Email = goose.model('Email', {
+            let Email = goose.model('Email', {
                 address: String,
                 user: goose.oneToOne('User')
             });
 
-            var Character = goose.model('Character', {
+            let Character = goose.model('Character', {
                 name: String,
                 user: goose.manyToOne('User')
             });
 
-            var Group = goose.model('Group', {
+            let Group = goose.model('Group', {
                 name: String,
                 users: goose.manyToMany('User')
             });
 
-            var user = new User({
+            const user = new User({
                 username: 'Foo'
             }).save();
-            var user2 = new User({
+            const user2 = new User({
                 username: 'Bar'
             }).save();
 
-            var email = new Email({
+            const email = new Email({
                 address: 'foo@example.com'
             }).save();
-            var email2 = new Email({
+            const email2 = new Email({
                 address: 'bar@example.com'
             }).save();
 
-            var character = new Character({
+            const character = new Character({
                 name: 'Jace the Mind Sculpter'
             });
-            var character2 = new Character({
+            const character2 = new Character({
                 name: 'Elflord'
             });
 
-            var group = new Group({
+            const group = new Group({
                 name: 'Elves'
             }).save();
-            var group2 = new Group({
+            const group2 = new Group({
                 name: 'Wizards'
             }).save();
 
@@ -212,7 +212,7 @@ describe('goose', function () {
 
             user2.addGroup(group);
 
-            var dump = goose.dump();
+            const dump = goose.dump();
 
             goose.purge()
 
@@ -237,33 +237,83 @@ describe('goose', function () {
 
             goose.load(dump);
 
-            var assert = require('assert');
+            const assert = require('assert');
             assert.equal(dump, goose.dump(),
                 'Loaded JSON contents did not recreate database perfectly'
             );
         });
 
         it('binds new properties to already existing instances', function () {
-            var User = goose.model('User', {
+            const User = goose.model('User', {
                 username: String
             });
 
-            var user = new User({
+            const user = new User({
                 username: 'Foo'
             }).save();
 
-            var Email = goose.model('Email', {
+            const Email = goose.model('Email', {
                 address: String,
                 user: goose.oneToOne('User')
             });
 
-            var email = new Email({
+            const email = new Email({
                 address: 'foo@example.com',
                 user: user
             }).save();
 
             assert.ok(user.email, 'user does not have an email property');
             assert.equal(user.email,  email, 'user.email is incorrect');
+        });
+
+        it('should have working prop closure helper method', function () {
+            const User = goose.model('User', {
+                username: String
+            });
+
+            User.addProp('email', goose.propClosure(function () {
+                return {
+                    get: function () {
+                        return `${this.username.toLowerCase()}@example.com`;
+                    }
+                }
+            }));
+
+            const user = new User({
+                username: 'Foo'
+            }).save();
+
+            assert.equal(user.email, 'foo@example.com',
+                'Email property not setup properly'
+            );
+        });
+
+        it('should make properties out of getter object', function () {
+            const User = goose.model('User', {
+                username: String
+            });
+
+            User.addProp('email', {
+                get: function () {
+                    return `${this.username.toLowerCase()}@example.com`;
+                }
+            });
+
+            const user = new User({
+                username: 'Foo'
+            }).save();
+
+            const user2 = new User({
+                username: 'Bar'
+            }).save();
+
+            assert.equal(user.email, 'foo@example.com',
+                'Email property not setup properly'
+            );
+
+            assert.equal(user2.email, 'bar@example.com',
+                'Email property not setup properly'
+            );
         });
     });
 });
