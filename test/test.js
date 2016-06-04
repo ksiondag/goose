@@ -1,10 +1,5 @@
 'use strict';
 
-// Simple test setup because I don't want to think about which library to use
-// right now
-
-// TODO: 2016/05/29
-// Think about which test library to use
 const goose = require('../index.js');
 const assert = require('assert');
 
