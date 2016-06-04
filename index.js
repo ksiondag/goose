@@ -19,15 +19,16 @@ exports.model = function (name, props) {
     }
 
     if (Model) {
-        assert(Model.sameDefinition(props), 
-            `ModelError: Multiple different definitions of ${name}`
-        );
-        console.log(`Warning: model ${name} defined multiple times`);
-        return Model;
+        assert.ifError(`Model ${name} defined multiple times`);
     }
 
     let propSet = {};
-    let bind = [];
+    let bind = {
+        create: [],
+        save: []
+        // TODO
+        //delete: []
+    };
     Model = function (obj) {
         // TODO: 2016/05/29
         // Imperfect object checking
@@ -47,7 +48,7 @@ exports.model = function (name, props) {
             this[key] = obj[key];
         });
 
-        bind.forEach((func) => func(this));
+        bind.create.forEach((func) => func(this));
     };
 
     let instances = [];
@@ -108,9 +109,13 @@ exports.model = function (name, props) {
         });
     };
 
-    Model.bind = function (func) {
-        bind.push(func);
-        Model.instances.all().forEach((instance) => func(instance));
+    Model.bind = function (when, func) {
+        bind[when].push(func);
+        // All instances that already exist should run the function if it isn't
+        // a function to be executed upon instance deletion
+        if (when !== 'delete') {
+            Model.instances.all().forEach((instance) => func(instance));
+        }
     };
 
     models[name] = Model;
@@ -121,32 +126,10 @@ exports.model = function (name, props) {
         Model.serializeKeys.push(key);
     });
 
-    Model.sameDefinition = function (definition) {
-        // TODO: 2016/05/29
-        // Imperfect comparison of definitions
-        // Doesn't check that relationships are consistent
-
-        if (!definition) {
-            return true;
-        }
-
-        Object.keys(definition).forEach((key) => {
-            if (!definition.hasOwnProperty(key)) { return; }
-            if (!props.hasOwnProperty(key)) { 
-                return false;
-            }
-        });
-
-        Object.keys(props).forEach((key) => {
-            if (!props.hasOwnProperty(key)) { return; }
-            if (!definition.hasOwnProperty(key)) {
-                return false;
-            }
-        });
-    };
-
     let id = 0;
     Model.prototype.save = function () {
+        // TODO: 2016/06/03
+        // Should id be in a closure? Only a select few things should set it
         if (!this._id) {
             this._id = id;
             id += 1;
@@ -156,8 +139,13 @@ exports.model = function (name, props) {
         if (instances.indexOf(this) === -1) {
             instances.push(this);
         }
+
+        bind.save.forEach((func) => func(this));
+
         return this;
     };
+
+    // TODO: Model.prototype.delete
 
     return Model;
 };

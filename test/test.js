@@ -315,6 +315,29 @@ describe('goose', function () {
                 'Email property not setup properly'
             );
         });
+
+        it('should call functions bound to models', function () {
+            const User = goose.model('User', {
+                username: String
+            });
+
+            const user = new User({
+                username: 'Foo'
+            }).save();
+
+            let mostRecentUser;
+            User.bind('create', function (user) {
+                mostRecentUser = user;
+            });
+
+            assert.equal(mostRecentUser, user);
+
+            const user2 = new User({
+                username: 'Bar'
+            }).save();
+
+            assert.equal(mostRecentUser, user2);
+        });
     });
 });
 
